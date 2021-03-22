@@ -1,0 +1,12 @@
+---
+- name: "Provision common GitHub Actions runner"
+  hosts: "all"
+  become: true
+  roles:
+    - role: "common"
+
+- name: "Provision Terraform GitHub Actions runner"
+  hosts: "terraform"
+  become: true
+  roles:
+    - role: "terraform"

@@ -1,0 +1,68 @@
+name: "Linters"
+
+on:
+  pull_request:
+
+jobs:
+  commits_checks:
+    name: "Commits checks"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Check out code"
+        uses: "actions/checkout@v2"
+        with:
+          fetch-depth: 0
+      - name: "Check commit messages"
+        id: "messages_check"
+        uses: "docker://aevea/commitsar"
+      - name: "Add comment with check result"
+        if: "${{ failure() }}"
+        uses: "actions/github-script@v4"
+        with:
+          script: |
+            let body = '**Commit messages check**\n' +
+                       '\nResult: ${{ steps.messages_check.outcome }}\n'
+
+            if ('${{ steps.messages_check.outcome }}' !== 'success') {
+              /* TODO: add the step output once it is available */
+              body += '\nSee https://www.conventionalcommits.org/\n'
+            }
+
+            github.issues.createComment({
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              body: body
+            })
+
+  terraform_configuration_checks:
+    name: "Terraform configuration checks"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Check out code"
+        uses: "actions/checkout@v2"
+      - name: "Setup Terraform"
+        uses: "hashicorp/setup-terraform@v1"
+      - name: "Check Terraform configuration format"
+        id: "format_check"
+        run: "terraform fmt -recursive -diff -check"
+      - name: "Add comment with check result"
+        if: "${{ failure() }}"
+        uses: "actions/github-script@v4"
+        with:
+          script: |
+            let body = '**Terraform configuration format check**\n' +
+                       '\nResult: ${{ steps.format_check.outcome }}\n'
+
+            if ('${{ steps.format_check.outcome }}' !== 'success') {
+              body += '\n```\n' +
+                      ${{ toJSON(steps.format_check.outputs.stdout) }} +
+                      '\n```\n'
+            }
+
+            github.issues.createComment({
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              body: body
+            })
