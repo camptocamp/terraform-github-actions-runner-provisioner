@@ -34,38 +34,3 @@ jobs:
               owner: context.repo.owner,
               body: body
             })
-
-  terraform_configuration_checks:
-    name: "Terraform configuration checks"
-    runs-on: "ubuntu-latest"
-    steps:
-      - name: "Check out code"
-        uses: "actions/checkout@v2"
-      - name: "Setup Terraform"
-        uses: "hashicorp/setup-terraform@v1"
-      - name: "Check Terraform configuration format"
-        id: "format_check"
-        run: "terraform fmt -check -recursive -diff -no-color"
-      - name: "Add comment with check result"
-        if: "failure()"
-        uses: "actions/github-script@v4"
-        with:
-          script: |
-            let body = '**Terraform configuration format check**' +
-                       '\n\nResult: ${{ steps.format_check.outcome }}'
-
-            if ('${{ steps.format_check.outcome }}' !== 'success') {
-              body += '\n\n<details>' +
-                      '\n<summary>Details</summary>' +
-                      '\n\n```\n' +
-                      ${{ toJSON(steps.format_check.outputs.stdout) }} +
-                      '\n```' +
-                      '\n\n</details>'
-            }
-
-            github.issues.createComment({
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              body: body
-            })
