@@ -20,12 +20,12 @@ jobs:
         uses: "actions/github-script@v4"
         with:
           script: |
-            let body = '**Commit messages check**\n' +
-                       '\nResult: ${{ steps.messages_check.outcome }}\n'
+            let body = '**Commit messages check**' +
+                       '\n\nResult: ${{ steps.messages_check.outcome }}'
 
             if ('${{ steps.messages_check.outcome }}' !== 'success') {
               /* TODO: add the step output once it is available */
-              body += '\nSee https://www.conventionalcommits.org/\n'
+              body += '\n\nSee https://www.conventionalcommits.org/'
             }
 
             github.issues.createComment({
@@ -45,19 +45,22 @@ jobs:
         uses: "hashicorp/setup-terraform@v1"
       - name: "Check Terraform configuration format"
         id: "format_check"
-        run: "terraform fmt -recursive -diff -check"
+        run: "terraform fmt -check -recursive -diff -no-color"
       - name: "Add comment with check result"
         if: "failure()"
         uses: "actions/github-script@v4"
         with:
           script: |
-            let body = '**Terraform configuration format check**\n' +
-                       '\nResult: ${{ steps.format_check.outcome }}\n'
+            let body = '**Terraform configuration format check**' +
+                       '\n\nResult: ${{ steps.format_check.outcome }}'
 
             if ('${{ steps.format_check.outcome }}' !== 'success') {
-              body += '\n```\n' +
+              body += '\n\n<details>' +
+                      '\n<summary>Details</summary>' +
+                      '\n\n```\n' +
                       ${{ toJSON(steps.format_check.outputs.stdout) }} +
-                      '\n```\n'
+                      '\n```' +
+                      '\n\n</details>'
             }
 
             github.issues.createComment({
