@@ -16,7 +16,7 @@ jobs:
         id: "messages_check"
         uses: "docker://aevea/commitsar"
       - name: "Add comment with check result"
-        if: "${{ failure() }}"
+        if: "failure()"
         uses: "actions/github-script@v4"
         with:
           script: |
@@ -47,7 +47,7 @@ jobs:
         id: "format_check"
         run: "terraform fmt -recursive -diff -check"
       - name: "Add comment with check result"
-        if: "${{ failure() }}"
+        if: "failure()"
         uses: "actions/github-script@v4"
         with:
           script: |
