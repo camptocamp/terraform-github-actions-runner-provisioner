@@ -1,0 +1,117 @@
+---
+- name: "Check variables"
+  assert:
+    that:
+      - "github_actions_runner_name is defined"
+      - "github_actions_runner_registration_url is defined"
+      - "github_actions_runner_registration_token is defined"
+      - "github_actions_runner_labels is defined"
+      - "github_actions_runner_version is defined"
+      - "github_actions_runner_archive_checksum is defined"
+    quiet: yes
+
+- name: "Configure Git Apt repository"
+  apt_repository:
+    repo: "ppa:git-core/ppa"
+    filename: "git.list"
+    state: "present"
+
+- name: "Install packages"
+  apt:
+    name:
+      - "docker.io"
+      - "git"
+    state: "latest"
+
+- name: "Add GitHub user"
+  user:
+    name: "github"
+    system: yes
+    groups:
+      - "docker"
+    home: "/opt/github/"
+    skeleton: ""
+    state: "present"
+  register: "github_user"
+
+- name: "Create GitHub Actions runner directory"
+  become_user: "{{ github_user.name }}"
+  file:
+    path: "{{ github_user.home }}/actions-runner"
+    state: "directory"
+  register: "github_actions_runner_directory"
+
+- name: "Check if GitHub Actions runner is already configured"
+  become_user: "{{ github_user.name }}"
+  stat:
+    path: "{{ github_actions_runner_directory.path }}/.runner"
+  register: "github_actions_runner_configuration_file"
+
+- name: "Stop GitHub Actions runner service"
+  when: "github_actions_runner_configuration_file.stat.exists"
+  shell:
+    chdir: "{{ github_actions_runner_directory.path }}"
+    cmd: "if ./svc.sh status | grep 'Active: active'; then ./svc.sh stop; fi"
+  register: "github_actions_runner_service"
+  changed_when: "github_actions_runner_service.stdout"
+
+- name: "Uninstall GitHub Actions runner service"
+  when: "github_actions_runner_configuration_file.stat.exists"
+  shell:
+    chdir: "{{ github_actions_runner_directory.path }}"
+    cmd: "if ! ./svc.sh status | grep -q 'not installed'; then ./svc.sh uninstall {{ github_user.name | quote }}; fi"
+  register: "github_actions_runner_service_installation"
+  changed_when: "github_actions_runner_service_installation.stdout"
+
+- name: "Remove GitHub Actions runner configuration"
+  when: "github_actions_runner_configuration_file.stat.exists"
+  become_user: "{{ github_user.name }}"
+  shell:
+    chdir: "{{ github_actions_runner_directory.path }}"
+    cmd: "if [ -f '.runner' ]; then ./config.sh remove --unattended --token {{ github_actions_runner_registration_token | quote }}; fi"
+  register: "github_actions_runner_configuration"
+  changed_when: "github_actions_runner_configuration.stdout"
+
+- name: "Download GitHub Actions runner archive"
+  become_user: "{{ github_user.name }}"
+  get_url:
+    url: "https://github.com/actions/runner/releases/download/v{{ github_actions_runner_version }}/actions-runner-linux-x64-{{ github_actions_runner_version }}.tar.gz"
+    checksum: "sha256:{{ github_actions_runner_archive_checksum }}"
+    dest: "{{ github_user.home }}"
+  register: "github_actions_runner_archive"
+
+- name: "Extract GitHub Actions runner archive"
+  become_user: "{{ github_user.name }}"
+  unarchive:
+    src: "{{ github_actions_runner_archive.dest }}"
+    remote_src: yes
+    dest: "{{ github_actions_runner_directory.path }}"
+  register: "github_actions_runner_directory_content"
+
+- name: "Install GitHub Actions runner dependencies"
+  when: "github_actions_runner_directory_content.changed"
+  command:
+    chdir: "{{ github_actions_runner_directory.path }}"
+    cmd: "./bin/installdependencies.sh"
+
+- name: "Configure GitHub Actions runner"
+  become_user: "{{ github_user.name }}"
+  shell:
+    chdir: "{{ github_actions_runner_directory.path }}"
+    cmd: "if [ ! -f '.runner' ]; then ./config.sh --unattended --name {{ github_actions_runner_name | quote }} --url {{ github_actions_runner_registration_url | quote }} --token {{ github_actions_runner_registration_token | quote }} --labels {{ github_actions_runner_labels | quote }}; fi"
+  register: "github_actions_runner_configuration"
+  changed_when: "github_actions_runner_configuration.stdout"
+
+- name: "Install GitHub Actions runner service"
+  shell:
+    chdir: "{{ github_actions_runner_directory.path }}"
+    cmd: "if ./svc.sh status | grep -q 'not installed'; then ./svc.sh install {{ github_user.name | quote }}; fi"
+  register: "github_actions_runner_service_installation"
+  changed_when: "github_actions_runner_service_installation.stdout"
+
+- name: "Start GitHub Actions runner service"
+  shell:
+    chdir: "{{ github_actions_runner_directory.path }}"
+    cmd: "if ./svc.sh status | grep 'Active: inactive'; then ./svc.sh start; fi"
+  register: "github_actions_runner_service"
+  changed_when: "github_actions_runner_service.stdout"

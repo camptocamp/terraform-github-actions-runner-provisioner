@@ -1,0 +1,27 @@
+---
+- name: "Install prerequisites"
+  apt:
+    name:
+      - "apt-transport-https"
+    state: "present"
+
+- name: "Import NodeSource Apt key"
+  apt_key:
+    data: "{{ lookup('file', 'nodesource.gpg.key') }}"
+    keyring: "/etc/apt/trusted.gpg.d/nodesource.gpg"
+    state: "present"
+
+- name: "Configure NodeSource Apt repository"
+  apt_repository:
+    repo: "deb https://deb.nodesource.com/node_14.x {{ ansible_distribution_release }} main"
+    filename: "nodesource.list"
+    state: "present"
+
+- name: "Install packages"
+  apt:
+    name:
+      - "unzip"
+      - "nodejs"
+      - "ansible"
+      - "jq"
+    state: "latest"
