@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     github = {
-      source = "integrations/github"
+      source = "yann-soubeyrand/github"
     }
 
     null = {
