@@ -27,6 +27,13 @@
       - "git"
     state: "latest"
 
+- name: "Add Ubuntu user to group docker"
+  user:
+    name: "ubuntu"
+    groups: 
+      - "docker"
+    append: yes
+
 - name: "Add GitHub user"
   user:
     name: "github"
