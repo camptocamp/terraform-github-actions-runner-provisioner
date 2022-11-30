@@ -62,7 +62,7 @@
   when: "github_actions_runner_configuration_file.stat.exists"
   shell:
     chdir: "{{ github_actions_runner_directory.path }}"
-    cmd: "if ./svc.sh status | grep 'Active: active'; then ./svc.sh stop; fi"
+    cmd: "if ./svc.sh status; then ./svc.sh stop; fi"
   register: "github_actions_runner_service"
   changed_when: "github_actions_runner_service.stdout"
 
@@ -70,7 +70,7 @@
   when: "github_actions_runner_configuration_file.stat.exists"
   shell:
     chdir: "{{ github_actions_runner_directory.path }}"
-    cmd: "if ! ./svc.sh status | grep -q 'not installed'; then ./svc.sh uninstall {{ github_user.name | quote }}; fi"
+    cmd: "if ./svc.sh status; then ./svc.sh uninstall {{ github_user.name | quote }}; fi"
   register: "github_actions_runner_service_installation"
   changed_when: "github_actions_runner_service_installation.stdout"
 
@@ -116,13 +116,13 @@
 - name: "Install GitHub Actions runner service"
   shell:
     chdir: "{{ github_actions_runner_directory.path }}"
-    cmd: "if ./svc.sh status | grep -q 'not installed'; then ./svc.sh install {{ github_user.name | quote }}; fi"
+    cmd: "if ! ./svc.sh status; then ./svc.sh install {{ github_user.name | quote }}; fi"
   register: "github_actions_runner_service_installation"
   changed_when: "github_actions_runner_service_installation.stdout"
 
 - name: "Start GitHub Actions runner service"
   shell:
     chdir: "{{ github_actions_runner_directory.path }}"
-    cmd: "if ./svc.sh status | grep 'Active: inactive'; then ./svc.sh start; fi"
+    cmd: "if ./svc.sh status; then ./svc.sh start; fi"
   register: "github_actions_runner_service"
   changed_when: "github_actions_runner_service.stdout"
