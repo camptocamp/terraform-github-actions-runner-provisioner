@@ -36,6 +36,10 @@ resource "null_resource" "this" {
       user        = var.user
       private_key = var.private_key
     }
+
+    ansible_ssh_settings {
+      insecure_no_strict_host_key_checking = "true"
+    }
   }
 
   # TODO: remove once suitable resource exists
