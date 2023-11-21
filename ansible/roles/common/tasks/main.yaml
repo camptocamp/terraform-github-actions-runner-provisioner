@@ -25,6 +25,7 @@
     name:
       - "docker.io"
       - "git"
+      - "acl"
     state: "latest"
 
 - name: "Add Ubuntu user to group docker"
